@@ -52,11 +52,11 @@ def construct_dataset(file_dir, n_samples, batch_size, n_epochs,
 
     # Ensure samples divide evenly into files * local-disks * worker-shards * batches
     n_divs = samples_per_file * n_file_sets * n_shards * batch_size
-    if (n_samples % n_divs) != 0:
-        logging.error('Number of samples (%i) not divisible by %i '
-                      'samples_per_file * n_file_sets * n_shards * batch_size',
-                      n_train, n_divs)
-        raise Exception('Invalid sample counts')
+    #if (n_samples % n_divs) != 0:
+    #    logging.error('Number of samples (%i) not divisible by %i '
+    #                  'samples_per_file * n_file_sets * n_shards * batch_size',
+    #                  n_train, n_divs)
+    #    raise Exception('Invalid sample counts')
 
     # Number of files and steps
     n_files = n_samples // (samples_per_file * n_file_sets)
@@ -64,6 +64,10 @@ def construct_dataset(file_dir, n_samples, batch_size, n_epochs,
 
     # Find the files
     filenames = sorted(glob.glob(os.path.join(file_dir, '*.tfrecord')))
+
+    print(filenames)
+    print(n_files)
+
     assert (0 <= n_files) and (n_files <= len(filenames)), (
         'Requested %i files, %i available' % (n_files, len(filenames)))
     if randomize_files:

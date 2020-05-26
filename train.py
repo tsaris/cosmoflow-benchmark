@@ -258,6 +258,7 @@ def main():
     if dist.rank == 0:
         logging.info('Beginning training')
     fit_verbose = 1 if (args.verbose and dist.rank==0) else 2
+
     model.fit(datasets['train_dataset'],
               steps_per_epoch=datasets['n_train_steps'],
               epochs=data_config['n_epochs'],
@@ -265,7 +266,8 @@ def main():
               validation_steps=datasets['n_valid_steps'],
               callbacks=callbacks,
               initial_epoch=initial_epoch,
-              verbose=fit_verbose)
+              verbose=fit_verbose
+    )
 
     # Print training summary
     if dist.rank == 0:
