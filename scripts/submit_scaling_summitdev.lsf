@@ -3,8 +3,8 @@
 #BSUB -P stf011
 #BSUB -J cosmoflow
 #BSUB -o logs/cosmoflow.o%J
-#BSUB -W 0:30
-#BSUB -nnodes 1
+#BSUB -W 2:00
+#BSUB -nnodes 32
 #BSUB -alloc_flags "nvme smt4"
 #BSUB -N
 # End LSF directives and begin shell commands
@@ -13,8 +13,8 @@ nnodes=$(cat ${LSB_DJOB_HOSTFILE} | sort | uniq | grep -v login | grep -v batch 
 
 INPUTDIR="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_data_2020/cosmoUniverse_2019_05_4parE_tf"
 OUTPUTDIR="/mnt/bb/$USER/"
-NTRAIN=100
-NVALID=100
+NTRAIN=4096
+NVALID=0
 
 echo "Setup mpi4py -- evn"
 export PATH=/sw/summit/python/3.7/anaconda3/5.3.0/bin/:$PATH
@@ -35,8 +35,70 @@ echo "Setup TF -- evn"
 export PATH=/sw/summit/ibm-wml-ce/anaconda-base/envs/ibm-wml-ce-1.6.2-5/bin/:$PATH
 export LD_LIBRARY_PATH=/sw/summit/ibm-wml-ce/anaconda-base/envs/ibm-wml-ce-1.6.2-5/bin/:$LD_LIBRARY_PATH
 
+RANK_FILES=32
+EPOCHS=60
+
 echo "Train multi node scalability"
-jsrun -n${nnodes} -a4 -c20 -g4 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
-    python train.py -d --rank-gpu --n-train 100 --n-epochs 10 --staged-files 1 configs/cosmo.yaml \
-    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020/" \
+echo "GPU1"
+jsrun -n1 -a1 -c20 -g1 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
+    python train.py -d --rank-gpu --n-train $((1*RANK_FILES)) --n-epochs $EPOCHS --staged-files 1 \
+    configs/cosmo.yaml \
+    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020_rk1/" \
     --data-dir="/mnt/bb/$USER"
+echo "DONE GPU1"
+
+echo "GPU2"
+jsrun -n1 -a2 -c20 -g2 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
+    python train.py -d --rank-gpu --n-train $((2*RANK_FILES)) --n-epochs $EPOCHS --staged-files 1 \
+    configs/cosmo.yaml \
+    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020_rk2/" \
+    --data-dir="/mnt/bb/$USER"
+echo "DONE GPU2"
+
+echo "GPU4"
+jsrun -n1 -a4 -c20 -g4 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
+    python train.py -d --rank-gpu --n-train $((4*RANK_FILES)) --n-epochs $EPOCHS --staged-files 1 \
+    configs/cosmo.yaml \
+    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020_rk4/" \
+    --data-dir="/mnt/bb/$USER"
+echo "DONE GPU4"
+
+echo "GPU8"
+jsrun -n2 -a4 -c20 -g4 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
+    python train.py -d --rank-gpu --n-train $((8*RANK_FILES)) --n-epochs $EPOCHS --staged-files 1 \
+    configs/cosmo.yaml \
+    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020_rk8/" \
+    --data-dir="/mnt/bb/$USER"
+echo "DONE GPU8"
+
+echo "GPU16"
+jsrun -n4 -a4 -c20 -g4 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
+    python train.py -d --rank-gpu --n-train $((16*RANK_FILES)) --n-epochs $EPOCHS --staged-files 1 \
+    configs/cosmo.yaml \
+    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020_rk16/" \
+    --data-dir="/mnt/bb/$USER"
+echo "DONE GPU16"
+
+echo "GPU32"
+jsrun -n8 -a4 -c20 -g4 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
+    python train.py -d --rank-gpu --n-train $((32*RANK_FILES)) --n-epochs $EPOCHS --staged-files 1 \
+    configs/cosmo.yaml \
+    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020_rk32/" \
+    --data-dir="/mnt/bb/$USER"
+echo "DONE GPU32"
+
+echo "GPU64"
+jsrun -n16 -a4 -c20 -g4 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
+    python train.py -d --rank-gpu --n-train $((64*RANK_FILES)) --n-epochs $EPOCHS --staged-files 1 \
+    configs/cosmo.yaml \
+    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020_rk64/" \
+    --data-dir="/mnt/bb/$USER"
+echo "DONE GPU64"
+
+echo "GPU128"
+jsrun -n32 -a4 -c20 -g4 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
+    python train.py -d --rank-gpu --n-train $((128*RANK_FILES)) --n-epochs $EPOCHS --staged-files 1 \
+    configs/cosmo.yaml \
+    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020_rk128/" \
+    --data-dir="/mnt/bb/$USER"
+echo "DONE GPU128"

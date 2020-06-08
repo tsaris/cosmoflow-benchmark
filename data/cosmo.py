@@ -65,9 +65,6 @@ def construct_dataset(file_dir, n_samples, batch_size, n_epochs,
     # Find the files
     filenames = sorted(glob.glob(os.path.join(file_dir, '*.tfrecord')))
 
-    print(filenames)
-    print(n_files)
-
     assert (0 <= n_files) and (n_files <= len(filenames)), (
         'Requested %i files, %i available' % (n_files, len(filenames)))
     if randomize_files:

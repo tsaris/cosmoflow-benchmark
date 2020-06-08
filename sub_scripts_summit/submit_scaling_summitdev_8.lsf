@@ -1,0 +1,42 @@
+#!/bin/bash
+# Begin LSF directives
+#BSUB -P stf011
+#BSUB -J cosmoflow
+#BSUB -o logs/cosmoflow.o%J
+#BSUB -W 2:00
+#BSUB -nnodes 2
+#BSUB -alloc_flags "nvme smt4"
+#BSUB -N
+# End LSF directives and begin shell commands
+
+nnodes=$(cat ${LSB_DJOB_HOSTFILE} | sort | uniq | grep -v login | grep -v batch | wc -l)
+
+INPUTDIR="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_data_2020/cosmoUniverse_2019_05_4parE_tf"
+OUTPUTDIR="/mnt/bb/$USER"
+NTRAIN=4096
+
+RANK_FILES=512
+EPOCHS=4
+
+echo "Setup mpi4py -- evn"
+export PATH=/sw/summit/python/3.7/anaconda3/5.3.0/bin/:$PATH
+export LD_LIBRARY_PATH=/sw/summit/python/3.7/anaconda3/5.3.0/bin/:$LD_LIBRARY_PATH
+
+echo "Make the directories"
+jsrun -n${nnodes} -a1 -c1 -r1  mkdir ${OUTPUTDIR}/train
+jsrun -n${nnodes} ls -ltrh ${OUTPUTDIR}
+
+echo "Copy files"
+jsrun -n${nnodes} -a4 -c20 -r1 python scripts/stage_data.py -n ${NTRAIN} ${INPUTDIR}/train ${OUTPUTDIR}/train
+
+echo "Setup TF -- evn"
+export PATH=/sw/summit/ibm-wml-ce/anaconda-base/envs/ibm-wml-ce-1.6.2-5/bin/:$PATH
+export LD_LIBRARY_PATH=/sw/summit/ibm-wml-ce/anaconda-base/envs/ibm-wml-ce-1.6.2-5/bin/:$LD_LIBRARY_PATH
+
+echo "Train multi node scalability"
+jsrun -n$nnodes -a4 -c20 -g4 -r1 --bind=proportional-packed:5 --launch_distribution=packed stdbuf -o0 \
+    python train.py -d --rank-gpu --n-train $((8*RANK_FILES)) --n-epochs $EPOCHS --staged-files 1 \
+    configs/cosmo.yaml \
+    --output-dir="/gpfs/alpine/world-shared/stf011/atsaris/cosmoflow_output_2020_rk8/" \
+    --data-dir=${OUTPUTDIR}
+echo "DONE"
